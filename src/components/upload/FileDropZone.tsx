@@ -34,13 +34,19 @@ export function FileDropZone({ onFilesSelected, lang, disabled = false }: FileDr
       }}
     >
       <div className="dropzone-icon">📁</div>
-      <p className="dropzone-text">
+      <p className="dropzone-text dropzone-text-desktop">
         {lang === 'ja'
           ? 'ここにファイルをドラッグ＆ドロップ、またはクリックして選択'
           : 'Drag & drop files here, or click to select'}
       </p>
-      <p className="dropzone-formats">
+      <p className="dropzone-text dropzone-text-mobile">
+        {lang === 'ja' ? 'タップしてファイルを選択' : 'Tap to select files'}
+      </p>
+      <p className="dropzone-formats dropzone-formats-desktop">
         {lang === 'ja' ? '対応形式: JPG, PNG, PDF · Ctrl+V で貼り付け可' : 'Supported: JPG, PNG, PDF · Ctrl+V to paste'}
+      </p>
+      <p className="dropzone-formats dropzone-formats-mobile">
+        {lang === 'ja' ? '対応形式: JPG, PNG, PDF' : 'Supported: JPG, PNG, PDF'}
       </p>
       <input
         ref={inputRef}

@@ -235,6 +235,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .dropzone-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
 .dropzone-text { font-size: 1rem; color: var(--color-text); margin-bottom: 0.5rem; }
 .dropzone-formats { font-size: 0.8rem; color: var(--color-text-secondary); }
+.dropzone-text-mobile, .dropzone-formats-mobile { display: none; }
 
 .upload-actions { display: flex; gap: 0.75rem; }
 
@@ -500,6 +501,13 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .result-sidebar-item:last-child { border-right: none; }
   .result-sidebar-item img { height: 60px; }
   .result-main { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .region-select-hint { display: none; }
+  .dropzone { padding: 2rem 1.25rem; }
+  .dropzone-text-desktop, .dropzone-formats-desktop { display: none; }
+  .dropzone-text-mobile, .dropzone-formats-mobile { display: block; }
 }
 
 .result-left, .result-right { min-width: 0; }
