@@ -2,9 +2,22 @@
  * 画像ファイル → ImageData + サムネイルDataUrl 変換
  */
 
+import UTIF from 'utif'
 import type { ProcessedImage } from '../types/ocr'
 
 const THUMBNAIL_MAX_WIDTH = 200
+
+export function isTiffFile(file: File): boolean {
+  if (file.type === 'image/tiff') return true
+  const ext = file.name.toLowerCase().split('.').pop()
+  return ext === 'tiff' || ext === 'tif'
+}
+
+export function isHeicFile(file: File): boolean {
+  if (file.type === 'image/heic' || file.type === 'image/heif') return true
+  const ext = file.name.toLowerCase().split('.').pop()
+  return ext === 'heic' || ext === 'heif'
+}
 
 export async function fileToProcessedImage(file: File): Promise<ProcessedImage> {
   const imageData = await fileToImageData(file)
@@ -17,7 +30,65 @@ export async function fileToProcessedImage(file: File): Promise<ProcessedImage> 
   }
 }
 
+/** TIFF ファイル（複数ページ対応）→ ProcessedImage[] */
+export async function tiffToProcessedImages(file: File): Promise<ProcessedImage[]> {
+  const buffer = await file.arrayBuffer()
+  const ifds = UTIF.decode(buffer)
+  const results: ProcessedImage[] = []
+
+  for (let i = 0; i < ifds.length; i++) {
+    UTIF.decodeImage(buffer, ifds[i])
+    const w = ifds[i].width
+    const h = ifds[i].height
+    const rgba = UTIF.toRGBA8(ifds[i])
+    const imageData = new ImageData(new Uint8ClampedArray(rgba), w, h)
+    const thumbnailDataUrl = makeThumbnailDataUrl(imageData)
+    results.push({
+      fileName: file.name,
+      pageIndex: ifds.length > 1 ? i + 1 : undefined,
+      imageData,
+      thumbnailDataUrl,
+    })
+  }
+
+  return results
+}
+
 async function fileToImageData(file: File): Promise<ImageData> {
+  if (isHeicFile(file)) return heicFileToImageData(file)
+  return standardImageToImageData(file)
+}
+
+async function heicFileToImageData(file: File): Promise<ImageData> {
+  // heic2any は重いため動的インポート（初回HEIC処理時のみ読み込み）
+  const { default: heic2any } = await import('heic2any')
+  const result = await heic2any({ blob: file, toType: 'image/png' })
+  const pngBlob = Array.isArray(result) ? result[0] : result
+  return blobToImageData(pngBlob, file.name)
+}
+
+async function blobToImageData(blob: Blob, name: string): Promise<ImageData> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(blob)
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      URL.revokeObjectURL(url)
+      resolve(ctx.getImageData(0, 0, canvas.width, canvas.height))
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error(`Failed to load image: ${name}`))
+    }
+    img.src = url
+  })
+}
+
+async function standardImageToImageData(file: File): Promise<ImageData> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)

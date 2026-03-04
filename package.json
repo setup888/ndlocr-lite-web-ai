@@ -10,18 +10,21 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "heic2any": "^0.0.4",
+    "js-yaml": "^4.1.0",
     "onnxruntime-web": "^1.20.0",
     "pdfjs-dist": "^4.9.0",
-    "js-yaml": "^4.1.0"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "utif": "^3.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
     "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/utif": "^3.0.6",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

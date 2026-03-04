@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { ProcessedImage } from '../types/ocr'
-import { fileToProcessedImage } from '../utils/imageLoader'
+import { fileToProcessedImage, tiffToProcessedImages, isTiffFile, isHeicFile } from '../utils/imageLoader'
 import { pdfToProcessedImages } from '../utils/pdfLoader'
 
 export interface FileLoadingState {
@@ -29,7 +29,11 @@ export function useFileProcessor() {
             setFileLoadingState({ fileName: file.name, currentPage: current, totalPages: total })
           })
           images.push(...pages)
-        } else if (file.type.startsWith('image/')) {
+        } else if (isTiffFile(file)) {
+          setFileLoadingState({ fileName: file.name, currentPage: null, totalPages: null })
+          const pages = await tiffToProcessedImages(file)
+          images.push(...pages)
+        } else if (file.type.startsWith('image/') || isHeicFile(file)) {
           setFileLoadingState({ fileName: file.name, currentPage: null, totalPages: null })
           const img = await fileToProcessedImage(file)
           images.push(img)
