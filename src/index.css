@@ -504,9 +504,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .result-left, .result-right { min-width: 0; }
 
-.new-process-section {
-  margin-top: 0.5rem;
-  text-align: center;
+.btn-above-viewer {
+  width: 100%;
+  margin-bottom: 0.5rem;
 }
 
 /* ===== IMAGE VIEWER ===== */

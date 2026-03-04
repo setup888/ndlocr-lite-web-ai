@@ -6,11 +6,9 @@ interface HeaderProps {
   onOpenSettings: () => void
   onOpenHistory: () => void
   onLogoClick: () => void
-  onStartOCR?: () => void
-  canStartOCR?: boolean
 }
 
-export function Header({ lang, onToggleLanguage, onOpenSettings, onOpenHistory, onLogoClick, onStartOCR, canStartOCR }: HeaderProps) {
+export function Header({ lang, onToggleLanguage, onOpenSettings, onOpenHistory, onLogoClick }: HeaderProps) {
   return (
     <header className="header">
       <button className="header-title" onClick={onLogoClick}>
@@ -20,11 +18,6 @@ export function Header({ lang, onToggleLanguage, onOpenSettings, onOpenHistory, 
         </span>
       </button>
       <div className="header-actions">
-        {canStartOCR && onStartOCR && (
-          <button className="btn btn-primary btn-start-ocr" onClick={onStartOCR}>
-            {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
-          </button>
-        )}
         <button className="btn-icon" onClick={onOpenHistory} title={lang === 'ja' ? '処理履歴' : 'History'}>
           📋
         </button>

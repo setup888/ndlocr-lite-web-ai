@@ -222,8 +222,6 @@ export default function App() {
         onOpenSettings={() => setShowSettings(true)}
         onOpenHistory={() => setShowHistory(true)}
         onLogoClick={handleClear}
-        onStartOCR={() => setIsReadyToProcess(true)}
-        canStartOCR={hasPendingImages}
       />
 
       <main className="main">
@@ -296,6 +294,9 @@ export default function App() {
 
               <div className="result-main">
                 <div className="result-left">
+                  <button className="btn btn-primary btn-above-viewer" onClick={() => setIsReadyToProcess(true)}>
+                    {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
+                  </button>
                   <ImageViewer
                     imageDataUrl={pendingDataUrls[pendingImageIndex] ?? ''}
                     textBlocks={[]}
@@ -421,6 +422,11 @@ export default function App() {
 
               <div className="result-main">
                 <div className="result-left">
+                  {!isProcessing && (
+                    <button className="btn btn-secondary btn-above-viewer" onClick={handleClear}>
+                      {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
+                    </button>
+                  )}
                   {currentResult && (
                     <ImageViewer
                       imageDataUrl={currentResult.imageDataUrl}
@@ -447,11 +453,6 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="new-process-section">
-                <button className="btn btn-primary" onClick={handleClear}>
-                  {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
-                </button>
-              </div>
             </div>
           </section>
         )}
