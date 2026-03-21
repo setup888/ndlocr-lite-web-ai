@@ -43,7 +43,12 @@ ndlocr-lite-web-ai/
 ├── src/
 │   ├── App.tsx               # メインアプリコンポーネント
 │   ├── main.tsx              # エントリポイント
-│   └── ...                   # OCR処理、UIコンポーネント等
+│   ├── components/
+│   │   ├── layout/SplitView.tsx   # リサイズ可能な左右分割パネル
+│   │   ├── editor/TextEditor.tsx  # 編集可能テキストエリア（monospace）
+│   │   ├── viewer/ImageViewer.tsx # 画像表示（ズーム/パン対応）
+│   │   └── ...                    # その他UIコンポーネント
+│   └── ...                   # OCR処理、hooks、utils等
 ├── docs/
 │   └── NDLOCR-Lite-Web-AI-開発計画書.md
 ├── CLAUDE.md                 # このファイル
@@ -70,9 +75,9 @@ ndlocr-lite-web-ai/
 
 ## 開発フェーズ（現在の状態）
 
-- [x] Phase 1: フォーク＆セットアップ ← **現在ここ**
-- [ ] Phase 2: レイアウト改修（画像＋テキスト並列表示）
-- [ ] Phase 3: AI接続機能（Direct API / MCP Server）
+- [x] Phase 1: フォーク＆セットアップ
+- [x] Phase 2: レイアウト改修（SplitView、TextEditor、ズーム/パン）
+- [ ] Phase 3: AI接続機能（Direct API / MCP Server） ← **現在ここ**
 - [ ] Phase 4: AI校正機能
 - [ ] Phase 5: 仕上げ・デプロイ
 

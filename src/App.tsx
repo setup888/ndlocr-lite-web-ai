@@ -5,6 +5,7 @@ import { useI18n } from './hooks/useI18n'
 import { useOCRWorker } from './hooks/useOCRWorker'
 import { useFileProcessor } from './hooks/useFileProcessor'
 import { useResultCache } from './hooks/useResultCache'
+import { useAISettings } from './hooks/useAISettings'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
 import { SplitView } from './components/layout/SplitView'
@@ -44,6 +45,13 @@ export default function App() {
   const { isReady, jobState, processImage, processRegion, resetState } = useOCRWorker()
   const { processedImages, isLoading: isLoadingFiles, processFiles, clearImages, fileLoadingState } = useFileProcessor()
   const { runs: historyRuns, saveRun, clearResults } = useResultCache()
+  const {
+    settings: aiSettings,
+    updateSettings: updateAISettings,
+    switchProvider,
+    connectionStatus: aiConnectionStatus,
+    testAndConnect,
+  } = useAISettings()
 
   const [sessionResults, setSessionResults] = useState<OCRResult[]>([])
   const [selectedResultIndex, setSelectedResultIndex] = useState(0)
@@ -280,6 +288,7 @@ export default function App() {
         onOpenSettings={() => setShowSettings(true)}
         onOpenHistory={() => setShowHistory(true)}
         onLogoClick={handleClear}
+        aiConnectionStatus={aiConnectionStatus}
       />
 
       <main className="main">
@@ -480,7 +489,15 @@ export default function App() {
         />
       )}
       {showSettings && (
-        <SettingsModal onClose={() => setShowSettings(false)} lang={lang} />
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          lang={lang}
+          aiSettings={aiSettings}
+          onUpdateAISettings={updateAISettings}
+          onSwitchProvider={switchProvider}
+          connectionStatus={aiConnectionStatus}
+          onTestConnection={testAndConnect}
+        />
       )}
       {regionOCRDialog && (
         <RegionOCRDialog
