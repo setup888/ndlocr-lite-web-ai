@@ -7,12 +7,12 @@ import { useFileProcessor } from './hooks/useFileProcessor'
 import { useResultCache } from './hooks/useResultCache'
 import { Header } from './components/layout/Header'
 import { Footer } from './components/layout/Footer'
+import { SplitView } from './components/layout/SplitView'
 import { FileDropZone } from './components/upload/FileDropZone'
 import { DirectoryPicker } from './components/upload/DirectoryPicker'
 import { ProgressBar } from './components/progress/ProgressBar'
 import { ImageViewer } from './components/viewer/ImageViewer'
-import { ResultPanel } from './components/results/ResultPanel'
-import { ResultActions } from './components/results/ResultActions'
+import { TextEditor } from './components/editor/TextEditor'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
 import { RegionOCRDialog } from './components/viewer/RegionOCRDialog'
@@ -231,6 +231,47 @@ export default function App() {
   const hasResults = sessionResults.length > 0
   const hasPendingImages = processedImages.length > 0 && !isWorking && !hasResults
 
+  // ページナビゲーション（結果表示時）
+  const renderPageNav = (
+    index: number,
+    setIndex: (fn: (prev: number) => number) => void,
+    total: number,
+    maxIndex: number,
+  ) => (
+    <div className="result-page-nav">
+      <button
+        className="btn-nav"
+        onClick={() => { setIndex((prev) => prev - 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
+        disabled={index === 0}
+        title={lang === 'ja' ? '前のファイル' : 'Previous file'}
+      >←</button>
+      <select
+        className="result-page-select"
+        value={index}
+        onChange={(e) => {
+          setIndex(() => Number(e.target.value))
+          setSelectedBlock(null)
+          setSelectedPageBlock(null)
+        }}
+      >
+        {processedImages.map((img, i) => {
+          const label = img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName
+          return (
+            <option key={i} value={i} disabled={i > maxIndex}>
+              {i + 1} / {total}　{label}
+            </option>
+          )
+        })}
+      </select>
+      <button
+        className="btn-nav"
+        onClick={() => { setIndex((prev) => prev + 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
+        disabled={index >= maxIndex}
+        title={lang === 'ja' ? '次のファイル' : 'Next file'}
+      >→</button>
+    </div>
+  )
+
   return (
     <div className="app">
       <Header
@@ -242,6 +283,7 @@ export default function App() {
       />
 
       <main className="main">
+        {/* ===== アップロード画面 ===== */}
         {!hasResults && !isWorking && !isModelLoading && !hasPendingImages && (
           <section className="upload-section">
             <FileDropZone onFilesSelected={handleFilesSelected} lang={lang} disabled={isWorking} />
@@ -257,9 +299,9 @@ export default function App() {
           </section>
         )}
 
+        {/* ===== Pending 画面（認識前） ===== */}
         {hasPendingImages && (
           <section className="result-section">
-            {/* 左サイドバー */}
             {processedImages.length > 1 && (
               <div className="result-sidebar">
                 {processedImages.map((img, i) => (
@@ -279,61 +321,34 @@ export default function App() {
             )}
 
             <div className="result-content">
-              {/* ページナビゲーション */}
-              {processedImages.length > 1 && (
-                <div className="result-page-nav">
-                  <button
-                    className="btn-nav"
-                    onClick={() => setPendingImageIndex(prev => prev - 1)}
-                    disabled={pendingImageIndex === 0}
-                    title={lang === 'ja' ? '前のファイル' : 'Previous file'}
-                  >←</button>
-                  <select
-                    className="result-page-select"
-                    value={pendingImageIndex}
-                    onChange={(e) => setPendingImageIndex(Number(e.target.value))}
-                  >
-                    {processedImages.map((img, i) => (
-                      <option key={i} value={i}>
-                        {i + 1} / {processedImages.length}
-                        {img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="btn-nav"
-                    onClick={() => setPendingImageIndex(prev => prev + 1)}
-                    disabled={pendingImageIndex === processedImages.length - 1}
-                    title={lang === 'ja' ? '次のファイル' : 'Next file'}
-                  >→</button>
-                </div>
-              )}
+              {processedImages.length > 1 &&
+                renderPageNav(pendingImageIndex, setPendingImageIndex, processedImages.length, processedImages.length - 1)
+              }
 
-              <div className="result-main">
-                <div className="result-left">
-                  <button className="btn btn-primary btn-above-viewer" onClick={() => setIsReadyToProcess(true)}>
-                    {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
-                  </button>
-                  <ImageViewer
-                    imageDataUrl={pendingDataUrls[pendingImageIndex] ?? ''}
-                    textBlocks={[]}
-                    selectedBlock={null}
-                    onBlockSelect={() => {}}
-                    onRegionSelect={(blocks, bbox) =>
-                      handleRegionOCR(blocks, bbox, pendingDataUrls[pendingImageIndex] ?? '')
-                    }
-                  />
-                  <p className="region-select-hint">
-                    {lang === 'ja'
-                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
-                      : 'Drag to select a region and run OCR on that area only'}
-                  </p>
-                </div>
+              <div className="pending-viewer">
+                <button className="btn btn-primary btn-above-viewer" onClick={() => setIsReadyToProcess(true)}>
+                  {lang === 'ja' ? '認識を開始' : 'Start Recognition'}
+                </button>
+                <ImageViewer
+                  imageDataUrl={pendingDataUrls[pendingImageIndex] ?? ''}
+                  textBlocks={[]}
+                  selectedBlock={null}
+                  onBlockSelect={() => {}}
+                  onRegionSelect={(blocks, bbox) =>
+                    handleRegionOCR(blocks, bbox, pendingDataUrls[pendingImageIndex] ?? '')
+                  }
+                />
+                <p className="region-select-hint">
+                  {lang === 'ja'
+                    ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
+                    : 'Drag to select a region and run OCR on that area only'}
+                </p>
               </div>
             </div>
           </section>
         )}
 
+        {/* ===== ローディング画面 ===== */}
         {(isLoadingFiles || isModelLoading) && (
           <div className="processing-section">
             {isLoadingFiles && fileLoadingState && (
@@ -361,9 +376,10 @@ export default function App() {
           </div>
         )}
 
+        {/* ===== 結果表示（SplitView） ===== */}
         {(hasResults || isProcessing) && processedImages.length > 0 && (
-          <section className="result-section">
-            {/* 左サイドバー: 全ファイル一覧（未完了も含む） */}
+          <section className="result-section result-section-split">
+            {/* 左サイドバー: 全ファイル一覧 */}
             {processedImages.length > 1 && (
               <div className="result-sidebar">
                 {processedImages.map((img, i) => {
@@ -391,89 +407,62 @@ export default function App() {
               </div>
             )}
 
-            {/* メインコンテンツ */}
+            {/* メインコンテンツ: SplitView */}
             <div className="result-content">
-              {/* OCR処理中プログレスバー */}
+              {/* 処理中プログレス */}
               {isProcessing && (
                 <div className="result-progress-inline">
                   <ProgressBar jobState={jobState} lang={lang} />
                 </div>
               )}
 
-              {/* ページナビゲーション */}
-              <div className="result-page-nav">
-                <button
-                  className="btn-nav"
-                  onClick={() => { setSelectedResultIndex(prev => prev - 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
-                  disabled={selectedResultIndex === 0}
-                  title={lang === 'ja' ? '前のファイル' : 'Previous file'}
-                >
-                  ←
-                </button>
-                <select
-                  className="result-page-select"
-                  value={selectedResultIndex}
-                  onChange={(e) => {
-                    setSelectedResultIndex(Number(e.target.value))
-                    setSelectedBlock(null)
-                    setSelectedPageBlock(null)
-                  }}
-                >
-                  {processedImages.map((img, i) => {
-                    const label = img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName
-                    return (
-                      <option key={i} value={i} disabled={i >= sessionResults.length}>
-                        {i + 1} / {processedImages.length}　{label}
-                      </option>
-                    )
-                  })}
-                </select>
-                <button
-                  className="btn-nav"
-                  onClick={() => { setSelectedResultIndex(prev => prev + 1); setSelectedBlock(null); setSelectedPageBlock(null) }}
-                  disabled={selectedResultIndex >= sessionResults.length - 1}
-                  title={lang === 'ja' ? '次のファイル' : 'Next file'}
-                >
-                  →
-                </button>
+              {/* ページナビ + 新規処理ボタン */}
+              <div className="result-toolbar">
+                {renderPageNav(selectedResultIndex, setSelectedResultIndex, processedImages.length, sessionResults.length - 1)}
+                {!isProcessing && (
+                  <button className="btn btn-secondary btn-new-file" onClick={handleClear}>
+                    {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
+                  </button>
+                )}
               </div>
 
-              <div className="result-main">
-                <div className="result-left">
-                  {!isProcessing && (
-                    <button className="btn btn-secondary btn-above-viewer" onClick={handleClear}>
-                      {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
-                    </button>
-                  )}
-                  {currentResult && (
-                    <ImageViewer
-                      imageDataUrl={currentResult.imageDataUrl}
-                      textBlocks={currentResult.textBlocks}
-                      selectedBlock={selectedBlock}
-                      onBlockSelect={(block) => { setSelectedBlock(block); setSelectedPageBlock(null) }}
-                      onRegionSelect={(blocks, bbox) =>
-                        currentResult
-                          ? handleRegionOCR(blocks, bbox, currentResult.imageDataUrl)
-                          : undefined
-                      }
-                      pageBlocks={currentResult.pageBlocks}
-                      selectedPageBlock={selectedPageBlock}
-                      onPageBlockSelect={(block) => { setSelectedPageBlock(block); setSelectedBlock(null) }}
-                    />
-                  )}
-                  <p className="region-select-hint">
-                    {lang === 'ja'
-                      ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます'
-                      : 'Drag to select a region and run OCR on that area only'}
-                  </p>
-                </div>
-
-                <div className="result-right">
-                  <ResultPanel result={currentResult} selectedBlock={selectedBlock} selectedPageBlockText={selectedPageBlockText} lang={lang} />
-                  <ResultActions results={sessionResults} currentResult={currentResult} lang={lang} />
-                </div>
-              </div>
-
+              {/* 左右分割ビュー */}
+              <SplitView
+                left={
+                  <div className="split-image-panel">
+                    {currentResult && (
+                      <ImageViewer
+                        imageDataUrl={currentResult.imageDataUrl}
+                        textBlocks={currentResult.textBlocks}
+                        selectedBlock={selectedBlock}
+                        onBlockSelect={(block) => { setSelectedBlock(block); setSelectedPageBlock(null) }}
+                        onRegionSelect={(blocks, bbox) =>
+                          currentResult
+                            ? handleRegionOCR(blocks, bbox, currentResult.imageDataUrl)
+                            : undefined
+                        }
+                        pageBlocks={currentResult.pageBlocks}
+                        selectedPageBlock={selectedPageBlock}
+                        onPageBlockSelect={(block) => { setSelectedPageBlock(block); setSelectedBlock(null) }}
+                      />
+                    )}
+                    <p className="region-select-hint">
+                      {lang === 'ja'
+                        ? 'マウスで領域をドラッグすると、その領域のみ認識をおこないます（Alt+ドラッグでパン、ホイールでズーム）'
+                        : 'Drag to select a region for OCR (Alt+drag to pan, scroll to zoom)'}
+                    </p>
+                  </div>
+                }
+                right={
+                  <TextEditor
+                    result={currentResult}
+                    results={sessionResults}
+                    selectedBlock={selectedBlock}
+                    selectedPageBlockText={selectedPageBlockText}
+                    lang={lang}
+                  />
+                }
+              />
             </div>
           </section>
         )}

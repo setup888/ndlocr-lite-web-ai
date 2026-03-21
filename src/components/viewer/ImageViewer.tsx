@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import type { TextBlock, BoundingBox, PageBlock } from '../../types/ocr'
 
 interface ImageViewerProps {
@@ -11,6 +11,10 @@ interface ImageViewerProps {
   selectedPageBlock?: PageBlock | null
   onPageBlockSelect?: (block: PageBlock) => void
 }
+
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 5
+const ZOOM_STEP = 0.15
 
 export function ImageViewer({
   imageDataUrl,
@@ -28,6 +32,18 @@ export function ImageViewer({
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 })
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
   const [dragCurrent, setDragCurrent] = useState<{ x: number; y: number } | null>(null)
+
+  // ズーム/パン状態
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+  const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+
+  // 画像が変わったらズーム/パンをリセット
+  useEffect(() => {
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }, [imageDataUrl])
 
   useEffect(() => {
     const updateSize = () => {
@@ -57,7 +73,22 @@ export function ImageViewer({
     return { x: e.clientX - rect.left, y: e.clientY - rect.top }
   }
 
+  // ホイールズーム
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
+    setZoom((prev) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + delta)))
+  }, [])
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    // 中クリック or Spaceキー押下中 → パン
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      e.preventDefault()
+      setIsPanning(true)
+      panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
+      return
+    }
+
     if (!onRegionSelect) return
     const pos = getRelativePos(e)
     setDragStart(pos)
@@ -65,11 +96,21 @@ export function ImageViewer({
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning) {
+      const dx = e.clientX - panStart.current.x
+      const dy = e.clientY - panStart.current.y
+      setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy })
+      return
+    }
     if (!dragStart) return
     setDragCurrent(getRelativePos(e))
   }
 
   const handleMouseUp = () => {
+    if (isPanning) {
+      setIsPanning(false)
+      return
+    }
     if (!dragStart || !dragCurrent || !onRegionSelect) {
       setDragStart(null)
       setDragCurrent(null)
@@ -93,7 +134,7 @@ export function ImageViewer({
       return b.x < x2 && b.x + b.width > x1 && b.y < y2 && b.y + b.height > y1
     })
 
-    const MIN_DRAG = 15 // 元画像座標での最小ドラッグサイズ(px)
+    const MIN_DRAG = 15
     if (bbox.width >= MIN_DRAG && bbox.height >= MIN_DRAG) {
       onRegionSelect(selected, bbox)
     }
@@ -101,6 +142,10 @@ export function ImageViewer({
     setDragStart(null)
     setDragCurrent(null)
   }
+
+  const handleZoomIn = () => setZoom((prev) => Math.min(MAX_ZOOM, prev + ZOOM_STEP * 2))
+  const handleZoomOut = () => setZoom((prev) => Math.max(MIN_ZOOM, prev - ZOOM_STEP * 2))
+  const handleZoomReset = () => { setZoom(1); setPan({ x: 0, y: 0 }) }
 
   const selectionRect =
     dragStart && dragCurrent
@@ -112,68 +157,93 @@ export function ImageViewer({
         }
       : null
 
+  const isZoomed = zoom !== 1 || pan.x !== 0 || pan.y !== 0
+
   return (
-    <div
-      className="image-viewer"
-      ref={containerRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-    >
-      <img
-        ref={imgRef}
-        src={imageDataUrl}
-        alt="OCR対象画像"
-        className="viewer-image"
-        draggable={false}
-      />
-
-      {/* テキスト領域オーバーレイ */}
-      <div className="viewer-overlay" style={{ width: imgSize.width, height: imgSize.height }}>
-        {/* PageBlock オーバーレイ（段・カラム境界、TextBlock の背面） */}
-        {pageBlocks?.map((block, i) => (
-          <div
-            key={`pb-${i}`}
-            className={`page-block-box ${selectedPageBlock === block ? 'selected' : ''}`}
-            style={{
-              left: block.x * scaleX,
-              top: block.y * scaleY,
-              width: block.width * scaleX,
-              height: block.height * scaleY,
-            }}
-            onClick={(e) => { e.stopPropagation(); onPageBlockSelect?.(block) }}
-            title={`Block ${i + 1}`}
-          />
-        ))}
-
-        {textBlocks.map((block, i) => (
-          <div
-            key={i}
-            className={`region-box ${selectedBlock === block ? 'selected' : ''}`}
-            style={{
-              left: block.x * scaleX,
-              top: block.y * scaleY,
-              width: block.width * scaleX,
-              height: block.height * scaleY,
-            }}
-            onClick={() => onBlockSelect(block)}
-            title={block.text}
-          />
-        ))}
-
-        {/* マウスドラッグ選択範囲 */}
-        {selectionRect && (
-          <div
-            className="drag-selection"
-            style={{
-              left: selectionRect.left,
-              top: selectionRect.top,
-              width: selectionRect.width,
-              height: selectionRect.height,
-            }}
-          />
+    <div className="image-viewer-wrap">
+      {/* ズームコントロール */}
+      <div className="zoom-controls">
+        <button className="btn-zoom" onClick={handleZoomOut} title="Zoom out">−</button>
+        <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+        <button className="btn-zoom" onClick={handleZoomIn} title="Zoom in">+</button>
+        {isZoomed && (
+          <button className="btn-zoom btn-zoom-reset" onClick={handleZoomReset} title="Reset">
+            Reset
+          </button>
         )}
+      </div>
+
+      <div
+        className={`image-viewer ${isPanning ? 'panning' : ''}`}
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+      >
+        <div
+          className="image-viewer-transform"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'top left',
+          }}
+        >
+          <img
+            ref={imgRef}
+            src={imageDataUrl}
+            alt="OCR対象画像"
+            className="viewer-image"
+            draggable={false}
+          />
+
+          {/* テキスト領域オーバーレイ */}
+          <div className="viewer-overlay" style={{ width: imgSize.width, height: imgSize.height }}>
+            {/* PageBlock オーバーレイ */}
+            {pageBlocks?.map((block, i) => (
+              <div
+                key={`pb-${i}`}
+                className={`page-block-box ${selectedPageBlock === block ? 'selected' : ''}`}
+                style={{
+                  left: block.x * scaleX,
+                  top: block.y * scaleY,
+                  width: block.width * scaleX,
+                  height: block.height * scaleY,
+                }}
+                onClick={(e) => { e.stopPropagation(); onPageBlockSelect?.(block) }}
+                title={`Block ${i + 1}`}
+              />
+            ))}
+
+            {textBlocks.map((block, i) => (
+              <div
+                key={i}
+                className={`region-box ${selectedBlock === block ? 'selected' : ''}`}
+                style={{
+                  left: block.x * scaleX,
+                  top: block.y * scaleY,
+                  width: block.width * scaleX,
+                  height: block.height * scaleY,
+                }}
+                onClick={() => onBlockSelect(block)}
+                title={block.text}
+              />
+            ))}
+
+            {/* マウスドラッグ選択範囲 */}
+            {selectionRect && (
+              <div
+                className="drag-selection"
+                style={{
+                  left: selectionRect.left,
+                  top: selectionRect.top,
+                  width: selectionRect.width,
+                  height: selectionRect.height,
+                }}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
