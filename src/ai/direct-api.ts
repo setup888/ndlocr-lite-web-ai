@@ -1,6 +1,10 @@
 import type { AIConnector, ProofreadResult, ProviderConfig, AIProvider } from '../types/ai'
 import { PROVIDER_ENDPOINTS, DEFAULT_PROOFREAD_PROMPT } from '../types/ai'
 
+const REQUEST_TIMEOUT_MS = 60_000
+const MAX_RETRIES = 2
+const INITIAL_RETRY_DELAY_MS = 1000
+
 /**
  * Direct API コネクタ — ブラウザから各AI APIへ直接リクエストを送信
  */
@@ -25,6 +29,74 @@ export function createDirectApiConnector(
       }
     },
   }
+}
+
+/** タイムアウト付き fetch */
+async function fetchWithTimeout(
+  input: RequestInfo,
+  init: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.')
+    }
+    throw new Error(`Network error: ${err instanceof Error ? err.message : 'Connection failed'}`)
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** レートリミット・一時エラー時の指数バックオフリトライ */
+async function fetchWithRetry(
+  input: RequestInfo,
+  init: RequestInit,
+): Promise<Response> {
+  let lastError: Error | null = null
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetchWithTimeout(input, init)
+
+      // 429 (Rate Limit) or 5xx (Server Error) → リトライ
+      if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+        const retryAfter = res.headers.get('retry-after')
+        const delayMs = retryAfter
+          ? parseInt(retryAfter, 10) * 1000
+          : INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt)
+        await new Promise((r) => setTimeout(r, delayMs))
+        continue
+      }
+
+      return res
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (attempt < MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt)))
+        continue
+      }
+    }
+  }
+  throw lastError ?? new Error('Request failed after retries')
+}
+
+/** エラーレスポンスをユーザー向けメッセージに変換 */
+function formatApiError(provider: string, status: number, body: string): Error {
+  if (status === 401 || status === 403) {
+    return new Error(`${provider}: Invalid API key or insufficient permissions.`)
+  }
+  if (status === 429) {
+    return new Error(`${provider}: Rate limit exceeded. Please wait and try again.`)
+  }
+  if (status >= 500) {
+    return new Error(`${provider}: Server error (${status}). Please try again later.`)
+  }
+  // 他のエラーは本文を含める
+  const short = body.length > 200 ? body.slice(0, 200) + '...' : body
+  return new Error(`${provider} API error ${status}: ${short}`)
 }
 
 async function callProvider(
@@ -80,7 +152,7 @@ async function callAnthropic(
 
   content.push({ type: 'text', text: userText })
 
-  const res = await fetch(getEndpoint(config), {
+  const res = await fetchWithRetry(getEndpoint(config), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -98,7 +170,7 @@ async function callAnthropic(
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Anthropic API error ${res.status}: ${err}`)
+    throw formatApiError('Anthropic', res.status, err)
   }
 
   const json = await res.json()
@@ -126,7 +198,7 @@ async function callOpenAICompatible(
 
   userContent.push({ type: 'text', text: userText })
 
-  const res = await fetch(getEndpoint(config), {
+  const res = await fetchWithRetry(getEndpoint(config), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -144,7 +216,7 @@ async function callOpenAICompatible(
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`${config.provider} API error ${res.status}: ${err}`)
+    throw formatApiError(config.provider, res.status, err)
   }
 
   const json = await res.json()
@@ -152,7 +224,6 @@ async function callOpenAICompatible(
 }
 
 function supportsVision(provider: AIProvider): boolean {
-  // Groqは現時点でvision非対応のモデルが多い
   return provider !== 'groq'
 }
 
@@ -177,7 +248,7 @@ async function callGoogle(
 
   const endpoint = `${PROVIDER_ENDPOINTS.google}/${config.model}:generateContent?key=${config.apiKey}`
 
-  const res = await fetch(endpoint, {
+  const res = await fetchWithRetry(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -189,7 +260,7 @@ async function callGoogle(
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Google API error ${res.status}: ${err}`)
+    throw formatApiError('Google', res.status, err)
   }
 
   const json = await res.json()

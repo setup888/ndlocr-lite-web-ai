@@ -1542,4 +1542,56 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .text-editor-textarea {
     min-height: 40vh;
   }
+  .text-editor-header {
+    flex-wrap: wrap;
+  }
+  .text-editor-header-buttons {
+    flex-wrap: wrap;
+  }
+  .diff-view-header {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .diff-view-actions {
+    flex-wrap: wrap;
+  }
+  .bottom-toolbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* ===== MOBILE (<600px) ===== */
+@media (max-width: 600px) {
+  .header {
+    padding: 0.5rem 0.75rem;
+  }
+  .header-title h1 {
+    font-size: 1rem;
+  }
+  .header-version {
+    display: none;
+  }
+  .ai-status-text {
+    display: none;
+  }
+  .zoom-controls {
+    flex-wrap: wrap;
+  }
+  .text-editor-header-left {
+    width: 100%;
+  }
+  .text-editor-header-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .upload-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bottom-toolbar-right {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
 }
