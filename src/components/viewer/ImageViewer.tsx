@@ -62,9 +62,18 @@ export function ImageViewer({
       updateSize()
     }
     window.addEventListener('resize', updateSize)
+
+    // ResizeObserver で画像サイズの変化（ズーム等）を検知
+    let observer: ResizeObserver | null = null
+    if (img) {
+      observer = new ResizeObserver(updateSize)
+      observer.observe(img)
+    }
+
     return () => {
       img?.removeEventListener('load', updateSize)
       window.removeEventListener('resize', updateSize)
+      observer?.disconnect()
     }
   }, [imageDataUrl])
 
