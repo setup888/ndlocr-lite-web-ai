@@ -3,7 +3,7 @@ interface FooterProps {
   githubUrl?: string
 }
 
-export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrlite-web' }: FooterProps) {
+export function Footer({ lang, githubUrl = 'https://github.com/ogwata/ndlocr-lite-web-ai' }: FooterProps) {
   return (
     <footer className="footer">
       <div className="footer-privacy">
@@ -45,26 +45,27 @@ export function Footer({ lang, githubUrl = 'https://github.com/yuta1984/ndlocrli
           </span>
         )}
       </div>
+      <div className="footer-credits">
+        <div className="footer-credit-line">
+          {lang === 'ja' ? 'OCRエンジン: ' : 'OCR engine: '}
+          <a href="https://github.com/ndl-lab/ndlocr-lite" target="_blank" rel="noopener noreferrer">
+            NDLOCR-Lite
+          </a>
+          {lang === 'ja' ? '（国立国会図書館）' : ' (National Diet Library of Japan)'}
+        </div>
+        <div className="footer-credit-line">
+          {lang === 'ja' ? 'Web移植: ' : 'Web port: '}
+          <a href="https://github.com/yuta1984/ndlocrlite-web" target="_blank" rel="noopener noreferrer">
+            {lang === 'ja' ? '橋本雄太' : 'Yuta Hashimoto'}
+          </a>
+          {lang === 'ja' ? '（国立歴史民俗博物館）' : ' (National Museum of Japanese History)'}
+        </div>
+        <div className="footer-credit-line">
+          {lang === 'ja' ? 'AI校正機能: ' : 'AI proofreading: '}
+          {lang === 'ja' ? '小形克宏（一般社団法人ビブリオスタイル）' : 'Katsuhiro Ogata (Bibliostyle)'}
+        </div>
+      </div>
       <div className="footer-meta">
-        <span className="footer-author">
-          {lang === 'ja' ? (
-            <>
-              作成者:{' '}
-              <a href="https://x.com/yuta1984" target="_blank" rel="noopener noreferrer">
-                橋本雄太
-              </a>
-              （国立歴史民俗博物館、国立国会図書館 非常勤調査員）
-            </>
-          ) : (
-            <>
-              Created by{' '}
-              <a href="https://x.com/yuta1984" target="_blank" rel="noopener noreferrer">
-                Yuta Hashimoto
-              </a>
-              {' '}(National Museum of Japanese History / NDL)
-            </>
-          )}
-        </span>
         <a
           href={githubUrl}
           target="_blank"

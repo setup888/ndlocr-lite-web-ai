@@ -922,6 +922,20 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .footer-attribution-text a { color: var(--color-primary); }
 
+.footer-credits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.4rem;
+}
+
+.footer-credit-line {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.footer-credit-line a { color: var(--color-primary); }
+
 .footer-author { font-size: 0.75rem; color: var(--color-text-secondary); }
 .footer-github { font-size: 0.75rem; }
 
