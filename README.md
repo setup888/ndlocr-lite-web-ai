@@ -123,6 +123,12 @@ npm run build
 
 # ビルド結果のプレビュー
 npm run preview
+
+# ユニットテスト実行
+npm run test
+
+# MCPテスト用モックサーバー起動（localhost:3456）
+npm run mcp-server
 ```
 
 > **Note:** COOP/COEPヘッダーが必要なため、`npm run dev` で起動した開発サーバー（`localhost:5173`）で動作確認してください。`file://` プロトコルでは動作しません。

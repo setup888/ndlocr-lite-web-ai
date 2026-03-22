@@ -28,6 +28,9 @@ npm install          # 依存パッケージのインストール
 npm run dev          # 開発サーバー起動（localhost:5173）
 npm run build        # プロダクションビルド
 npm run preview      # ビルド結果のプレビュー
+npm run test         # ユニットテスト実行（Vitest）
+npm run test:watch   # テスト監視モード
+npm run mcp-server   # MCPテスト用モックサーバー起動（localhost:3456）
 ```
 
 ## ディレクトリ構成

@@ -89,6 +89,7 @@ Cross-Origin-Embedder-Policy: require-corp
 | 差分表示 | diff-match-patch |
 | AI校正 | Direct API（Anthropic/OpenAI/Google/Groq）/ MCP Server |
 | APIキー保存 | Web Crypto API（AES-GCM暗号化） |
+| テスト | Vitest（ユニットテスト） |
 | 状態管理 | React Context + useReducer |
 | デプロイ | Netlify（COOP/COEPヘッダー対応） |
 
@@ -261,6 +262,8 @@ interface ProofreadResult {
 - デプロイ最適化（netlify.tomlにセキュリティヘッダー追加、アセット/モデルの長期キャッシュ設定）
 - フッターのクレジット表記を3層構造に改訂（OCRエンジン / Web移植 / AI校正機能）
 - バージョニングをセマンティックバージョニングに統一（v0.x.x = 開発中、v1.0.0 = 初回正式リリース）
+- Vitestによるユニットテスト導入（差分計算、エラーメッセージ生成、モデルURL、AI設定定数の検証）
+- MCPテスト用モックサーバー（`npm run mcp-server`）を追加
 
 ### 5.1 対応環境
 
