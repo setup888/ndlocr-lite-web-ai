@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useEffect } from 'react'
 import DiffMatchPatch from 'diff-match-patch'
 
 export type DiffSegment = {
@@ -70,14 +70,43 @@ export function DiffView({
 
   // 各変更の accept/reject 状態: undefined=未決定, true=accept, false=reject
   const [decisions, setDecisions] = useState<Record<number, boolean>>({})
+  const [, setHistory] = useState<Array<Record<number, boolean>>>([])
+
+  const pushHistory = useCallback(() => {
+    setHistory((prev) => [...prev, { ...decisions }])
+  }, [decisions])
 
   const handleAccept = useCallback((id: number) => {
+    pushHistory()
     setDecisions((prev) => ({ ...prev, [id]: true }))
-  }, [])
+  }, [pushHistory])
 
   const handleReject = useCallback((id: number) => {
+    pushHistory()
     setDecisions((prev) => ({ ...prev, [id]: false }))
+  }, [pushHistory])
+
+  const handleUndo = useCallback(() => {
+    setHistory((prev) => {
+      if (prev.length === 0) return prev
+      const next = [...prev]
+      const last = next.pop()!
+      setDecisions(last)
+      return next
+    })
   }, [])
+
+  // Ctrl+Z / Cmd+Z でアンドゥ
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault()
+        handleUndo()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [handleUndo])
 
   // 個別決定を適用してテキストを構築
   const handleApplyDecisions = useCallback(() => {
@@ -139,8 +168,8 @@ export function DiffView({
         </div>
         <p className="diff-view-hint">
           {lang === 'ja'
-            ? '各修正の ✓ で適用、✗ で却下。選んだ後「選択を適用」をクリック'
-            : 'Click ✓ to accept or ✗ to reject each change, then click "Apply Selected"'}
+            ? '各修正の ✓ で適用、✗ で却下、「ctrl+z」で1つ前に戻る。選んだ後「選択を適用」をクリック。'
+            : 'Click ✓ to accept, ✗ to reject, ctrl+z to undo. Then click "Apply Selected".'}
         </p>
       </div>
       <div className="diff-view-body">
