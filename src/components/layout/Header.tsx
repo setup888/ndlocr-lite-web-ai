@@ -46,7 +46,7 @@ export function Header({
           ⚙️
         </button>
         <button className="btn-lang" onClick={onToggleLanguage}>
-          {lang === 'ja' ? 'English' : '日本語'}
+          {lang === 'ja' ? '日本語 ▾' : 'English ▾'}
         </button>
       </div>
     </header>
