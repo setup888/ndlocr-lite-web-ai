@@ -87,10 +87,11 @@ function handleRPC(req) {
 }
 
 const server = createServer((req, res) => {
-  // CORS ヘッダー（ブラウザからのアクセスに必要）
+  // CORS + COEP対応ヘッダー（COOP/COEPが有効なブラウザからのアクセスに必要）
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept')
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204)
