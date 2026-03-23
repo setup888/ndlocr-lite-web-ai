@@ -87,6 +87,7 @@ Cross-Origin-Embedder-Policy: require-corp
 | OCR処理 | Web Worker（UIをブロックしない非同期処理） |
 | モデルキャッシュ | IndexedDB |
 | 差分表示 | diff-match-patch |
+| エクスポート | TXT / TEI P5 XML / hOCR |
 | AI校正 | Direct API（Anthropic/OpenAI/Google/Groq）/ MCP Server |
 | APIキー保存 | Web Crypto API（AES-GCM暗号化） |
 | テスト | Vitest（ユニットテスト） |
