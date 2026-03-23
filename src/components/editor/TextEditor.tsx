@@ -505,7 +505,7 @@ export function TextEditor({
               checked={ignoreNewlines}
               onChange={(e) => setIgnoreNewlines(e.target.checked)}
             />
-            {lang === 'ja' ? '改行を無視' : 'Ignore newlines'}
+            {lang === 'ja' ? 'コピー/DL時に改行を除去' : 'Remove newlines on copy/download'}
           </label>
         </div>
         <div className="text-editor-font-controls">
