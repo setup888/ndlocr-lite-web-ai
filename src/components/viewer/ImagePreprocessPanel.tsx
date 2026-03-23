@@ -183,20 +183,22 @@ export function ImagePreprocessPanel({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const strings = t[lang]
 
-  // Use ref to always access latest options without stale closures
+  // Refs to avoid stale closures in debounced callbacks
   const optionsRef = useRef(options)
   optionsRef.current = options
+  const onProcessedRef = useRef(onProcessed)
+  onProcessedRef.current = onProcessed
 
-  // Debounced preview update — does NOT depend on options to avoid stale closure issues
+  // Debounced preview update — uses refs to avoid dependency on options/onProcessed
   const updatePreview = useCallback(() => {
-    setIsProcessing(true)
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
     debounceTimerRef.current = setTimeout(() => {
+      setIsProcessing(true)
       applyPreprocess(imageDataUrl, optionsRef.current)
         .then((result) => {
-          onProcessed(result)
+          onProcessedRef.current(result)
           setIsProcessing(false)
         })
         .catch((err) => {
@@ -204,7 +206,7 @@ export function ImagePreprocessPanel({
           setIsProcessing(false)
         })
     }, 300)
-  }, [imageDataUrl, onProcessed])
+  }, [imageDataUrl])
 
   const handleSliderChange = useCallback(
     (key: keyof PreprocessOptions, value: number) => {
@@ -348,7 +350,6 @@ export function ImagePreprocessPanel({
                   step={step}
                   value={options[key]}
                   onChange={(e) => handleSliderChange(key, parseFloat(e.target.value))}
-                  disabled={isProcessing}
                 />
               </div>
             ))}
