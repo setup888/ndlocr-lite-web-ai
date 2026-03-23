@@ -149,6 +149,7 @@ npm run mcp-server
 | NDLOCR-Lite（OCRモデル・アルゴリズム） | CC BY 4.0 | 国立国会図書館 |
 | ndlocrlite-web（Web移植コード） | LICENSEファイルに準拠 | 橋本雄太氏 |
 | NDLOCR-Lite Web AI（本プロジェクトの追加コード） | MIT License | 小形 |
+| UI拡張機能（ダークモード、画像前処理、多言語UI等） | MIT License | [宮川創](https://researchmap.jp/SoMiyagawa)（筑波大学） |
 
 ## 帰属・クレジット
 
@@ -159,3 +160,4 @@ npm run mcp-server
 - **DEIMv2:** [ShihuaHuang95/DEIM](https://github.com/ShihuaHuang95/DEIM)
 - **PARSeq:** [baudm/parseq](https://github.com/baudm/parseq)
 - **文字セット（NDLmoji.yaml）:** 国立国会図書館
+- **ndlocr-lite-web-ai-deluxe:** [somiyagawa/ndlocr-lite-web-ai-deluxe](https://github.com/somiyagawa/ndlocr-lite-web-ai-deluxe)（宮川創氏） — 画像前処理、ダークモード、多言語UI、縦書き表示等
