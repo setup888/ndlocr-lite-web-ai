@@ -76,6 +76,14 @@ export function Footer({ lang, githubUrl = 'https://github.com/ogwata/ndlocr-lit
       </div>
       <div className="footer-meta">
         <a
+          href={`${githubUrl}#readme`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="footer-github"
+        >
+          {lang === 'ja' ? 'ドキュメント' : 'Documentation'} ↗
+        </a>
+        <a
           href={githubUrl}
           target="_blank"
           rel="noopener noreferrer"
