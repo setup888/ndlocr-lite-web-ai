@@ -55,15 +55,29 @@ export function ImageViewer({
   const [isPanning, setIsPanning] = useState(false)
   const panStartRef = useRef({ x: 0, y: 0 })
 
+  // Container size tracking for fit-to-view calculation
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const updateContainerSize = () => {
+      setContainerSize({ width: container.clientWidth, height: container.clientHeight })
+    }
+    updateContainerSize()
+    const observer = new ResizeObserver(updateContainerSize)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
+
   // Compute effective zoom
   const getEffectiveZoom = useCallback(() => {
     if (zoom !== FIT_ZOOM) return zoom
-    if (!containerRef.current || naturalSize.width === 0) return 1
-    const container = containerRef.current
-    const scaleW = container.clientWidth / naturalSize.width
-    const scaleH = container.clientHeight / naturalSize.height
+    if (naturalSize.width === 0 || containerSize.width === 0 || containerSize.height === 0) return 1
+    const scaleW = containerSize.width / naturalSize.width
+    const scaleH = containerSize.height / naturalSize.height
     return Math.min(scaleW, scaleH, 1) // never upscale beyond 100%
-  }, [zoom, naturalSize])
+  }, [zoom, naturalSize, containerSize])
 
   const effectiveZoom = getEffectiveZoom()
 
