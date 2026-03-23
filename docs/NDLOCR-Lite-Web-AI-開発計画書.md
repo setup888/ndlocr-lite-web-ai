@@ -311,6 +311,7 @@ CC BY 4.0の条件を満たすため、以下の帰属表示をREADMEおよびLI
 | NDLOCR-Lite（OCRモデル・アルゴリズム） | CC BY 4.0 | 国立国会図書館 |
 | ndlocrlite-web（Web移植コード） | LICENSEファイルに準拠 | 橋本雄太氏 |
 | NDLOCR-Lite Web AI（本プロジェクトの追加コード） | MIT License | 小形 |
+| UI拡張機能（ダークモード、画像前処理、多言語UI等） | MIT License | 宮川創氏（筑波大学） |
 
 ---
 
@@ -318,5 +319,6 @@ CC BY 4.0の条件を満たすため、以下の帰属表示をREADMEおよびLI
 
 - **NDLOCR-Lite（元リポジトリ）：** https://github.com/ndl-lab/ndlocr-lite
 - **ndlocrlite-web（ベースリポジトリ）：** https://github.com/yuta1984/ndlocrlite-web
+- **ndlocr-lite-web-ai-deluxe（UI拡張元）：** https://github.com/somiyagawa/ndlocr-lite-web-ai-deluxe
 - **ndlocrlite-web デモサイト：** https://ndlocr-liteweb.netlify.app/
 - **NDLラボ：** https://lab.ndl.go.jp/

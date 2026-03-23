@@ -7,6 +7,8 @@ NDLOCR-Lite Web AI は、国立国会図書館の NDLOCR-Lite をベースにし
 - ブラウザ内でONNX Runtime Web（WASM）によるOCR推論を実行
 - サーバーに画像を送信しない完全クライアントサイド処理
 - AI（Claude, GPT, Gemini等）によるOCR結果の校正機能を付加
+- 画像前処理（明るさ・コントラスト・シャープネス・二値化・ノイズ除去・傾き補正・ページ分割）
+- ダークモード（OS設定追従）、多言語UI（日英中韓）、縦書き表示モード
 
 詳細な開発計画は `docs/NDLOCR-Lite-Web-AI-開発計画書.md` を参照。
 
@@ -53,15 +55,24 @@ ndlocr-lite-web-ai/
 │   │   ├── layout/
 │   │   │   ├── SplitView.tsx      # リサイズ可能な左右分割パネル
 │   │   │   ├── BottomToolbar.tsx  # ボトムバー（Upload + 処理時間表示）
-│   │   │   └── Header.tsx         # ヘッダー（バージョンバッジ + AI接続ステータス）
+│   │   │   ├── Header.tsx         # ヘッダー（バージョンバッジ + AI接続ステータス + 言語/テーマ切替）
+│   │   │   └── Footer.tsx         # フッター（クレジット表記）
 │   │   ├── editor/
-│   │   │   ├── TextEditor.tsx     # 編集可能テキストエリア + AI校正ボタン
+│   │   │   ├── TextEditor.tsx     # 編集可能テキストエリア + AI校正 + 検索置換 + 縦書き表示
 │   │   │   └── DiffView.tsx       # 差分表示（accept/reject UI付き）
-│   │   ├── viewer/ImageViewer.tsx # 画像表示（ズーム/スクロール + 領域選択 + ページ/サイズ情報）
+│   │   ├── viewer/
+│   │   │   ├── ImageViewer.tsx    # 画像表示（ズーム/スクロール + 領域選択 + ページ/サイズ情報）
+│   │   │   └── ImagePreprocessPanel.tsx # 画像前処理パネル（明るさ・コントラスト・二値化・傾き補正等）
 │   │   ├── settings/SettingsModal.tsx # AI接続設定 + キャッシュ管理
 │   │   └── ...                    # その他UIコンポーネント
-│   ├── hooks/useAISettings.ts     # AI設定管理hook
-│   ├── utils/crypto.ts            # APIキー暗号化（Web Crypto API）
+│   ├── hooks/
+│   │   ├── useAISettings.ts       # AI設定管理hook
+│   │   ├── useI18n.ts             # 多言語対応hook（日英中韓）
+│   │   └── useTheme.ts            # ダークモード切替hook（OS設定追従）
+│   ├── i18n/                      # 多言語リソース（ja, en, zh-CN, zh-TW, ko）
+│   ├── utils/
+│   │   ├── crypto.ts              # APIキー暗号化（Web Crypto API）
+│   │   └── imagePreprocess.ts     # 画像前処理ユーティリティ
 │   ├── types/ai.ts                # AI関連の型定義
 │   └── ...                   # OCR処理、hooks、utils等
 ├── docs/
@@ -102,7 +113,7 @@ ndlocr-lite-web-ai/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ [N] NDLOCR-Lite Web AI  v0.1.0          [AI connected] [Settings] │  ← ヘッダーバー
+│ [N] NDLOCR-Lite Web AI  v0.2.0   [🌙] [🌐] [AI connected] [Settings] │  ← ヘッダーバー
 ├───────────────────────────┬─────────────────────────────────────┤
 │                           │  OCR result  [AI校正][コピー][ダウンロード]│
 │   Original image          │                                     │
@@ -127,7 +138,7 @@ ndlocr-lite-web-ai/
 
 **ヘッダーバー:**
 - 左: アプリアイコン + アプリ名 + バージョンバッジ
-- 右: AI接続ステータスバッジ（connected=緑 / disconnected=灰）+ Settingsボタン
+- 右: ダークモード切替 + 言語選択（日英中韓5言語） + AI接続ステータスバッジ（connected=緑 / disconnected=灰）+ Settingsボタン
 
 **左パネル（ImageViewer）:**
 - 元画像の表示（+/−ボタンとCtrl+ホイールでズーム、スクロールバーで移動）
@@ -137,7 +148,10 @@ ndlocr-lite-web-ai/
 
 **右パネル（TextEditor）:**
 - OCR結果の編集可能テキストエリア
-- フォント: monospace、サイズ: 13-14px、line-height: 1.9
+- フォント: monospace、サイズ: 10-24px（スライダーで調整可能）、line-height: 1.9
+- 縦書き表示モード切替対応（writing-mode: vertical-rl）
+- テキスト検索・置換機能（Ctrl+F、単一/全置換、マッチナビゲーション）
+- 行番号表示（スクロール同期）
 - ビューポート高さの70-80%、overflow-y: auto でスクロール可能
 - パネル上部にボタン群: 「AI校正」（紫グラデーション）「コピー」「ダウンロード」（現在表示中のテキストのみ対象）
 - AI校正後の差分表示: 削除部分＝赤背景+取消線、追加部分＝緑背景のインライン表示
@@ -266,7 +280,7 @@ Cross-Origin-Embedder-Policy: require-corp
 - コンポーネント: React関数コンポーネント + Hooks
 - スタイル: 既存のCSSファイルの規約に従う
 - 新規コンポーネントは `src/` 配下に適切に配置する
-- 日本語コメント可（UIテキストは日英両対応を維持）
+- 日本語コメント可（UIテキストは日英中韓5言語対応を維持）
 
 ### AI校正関連の設計方針
 
@@ -291,6 +305,7 @@ Cross-Origin-Embedder-Policy: require-corp
 - 本プロジェクトの追加コード: MIT License
 - OCRモデル・アルゴリズム: NDLOCR-Lite（国立国会図書館、CC BY 4.0）
 - Web移植ベースコード: ndlocrlite-web（橋本雄太氏）
+- UI拡張機能（ダークモード、画像前処理、多言語UI等）: 宮川創氏（筑波大学）、MIT License
 - 帰属表示を必ず維持すること
 
 ## 上流リポジトリ
@@ -298,3 +313,4 @@ Cross-Origin-Embedder-Policy: require-corp
 - **origin:** ogwata/ndlocr-lite-web-ai（本リポジトリ）
 - **upstream:** yuta1984/ndlocrlite-web（フォーク元）
 - **元のOCRエンジン:** ndl-lab/ndlocr-lite
+- **UI拡張元:** somiyagawa/ndlocr-lite-web-ai-deluxe（宮川創氏）
