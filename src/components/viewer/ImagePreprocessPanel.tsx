@@ -442,7 +442,7 @@ async function applyPreprocess(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (!imageDataUrl.startsWith('data:')) img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas')
@@ -587,7 +587,7 @@ function applyDenoise(imageData: ImageData): void {
 async function deskewImage(imageDataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (!imageDataUrl.startsWith('data:')) img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas')
@@ -700,7 +700,7 @@ function estimateSkewAngle(imageData: ImageData): number {
 async function autoCrop(imageDataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (!imageDataUrl.startsWith('data:')) img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas')
@@ -780,7 +780,7 @@ function findContentBounds(imageData: ImageData): Bounds {
 async function splitPageCenter(imageDataUrl: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (!imageDataUrl.startsWith('data:')) img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const centerX = img.width / 2
@@ -818,7 +818,7 @@ async function splitPageCenter(imageDataUrl: string): Promise<string[]> {
 async function splitPageAuto(imageDataUrl: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'
+    if (!imageDataUrl.startsWith('data:')) img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas')
