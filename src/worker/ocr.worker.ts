@@ -199,11 +199,14 @@ class OCRWorker {
         const recognizer = this.selectRecognizer(region.charCountCategory)
         const result = await recognizer.recognizeCropped(croppedImages[i])
 
-        recognitionResults.push({
-          ...region,
-          text: result.text,
-          readingOrder: i + 1,
-        })
+        if (result.confidence >= 0.3) {
+          recognitionResults.push({
+            ...region,
+            text: result.text,
+            confidence: result.confidence,
+            readingOrder: i + 1,
+          })
+        }
 
         this.post({
           type: 'OCR_PROGRESS',

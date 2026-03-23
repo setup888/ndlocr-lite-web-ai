@@ -199,6 +199,7 @@ export class TextRecognizer {
       const [, seqLength, vocabSize] = dims
 
       const resultClassIds: number[] = []
+      const charConfidences: number[] = []
 
       for (let i = 0; i < seqLength; i++) {
         const scores = logits.slice(i * vocabSize, (i + 1) * vocabSize)
@@ -210,22 +211,38 @@ export class TextRecognizer {
         // 特殊トークン (<s>=1, </s>=2, <pad>=3) をスキップ
         if (maxIndex < 4) continue
 
+        // softmax確率を計算（数値安定性のためmaxを引く）
+        let sumExp = 0
+        for (let j = 0; j < vocabSize; j++) {
+          sumExp += Math.exp(scores[j] - maxScore)
+        }
+        const prob = 1.0 / sumExp // = exp(maxScore - maxScore) / sumExp
+        charConfidences.push(prob)
+
         resultClassIds.push(maxIndex - 1)
       }
 
       // 連続重複を除去してテキスト生成
       const resultChars: string[] = []
+      const filteredConfidences: number[] = []
       let prevId = -1
-      for (const id of resultClassIds) {
+      for (let i = 0; i < resultClassIds.length; i++) {
+        const id = resultClassIds[i]
         if (id !== prevId && id < this.config.charList.length) {
           resultChars.push(this.config.charList[id])
+          filteredConfidences.push(charConfidences[i])
           prevId = id
         }
       }
 
+      // 全文字の平均信頼度（文字がない場合は0）
+      const avgConfidence = filteredConfidences.length > 0
+        ? filteredConfidences.reduce((a, b) => a + b, 0) / filteredConfidences.length
+        : 0
+
       return {
         text: resultChars.join('').trim(),
-        confidence: 0.9,
+        confidence: avgConfidence,
       }
     } catch (error) {
       console.error('Error decoding output:', error)

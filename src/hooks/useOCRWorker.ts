@@ -273,11 +273,15 @@ export function useOCRWorker() {
         const allResults = chunkResults.flat()
         const resultMap = new Map(allResults.map(r => [r.id, r]))
 
-        const recognitionResults: TextBlock[] = textRegions.map((region, i) => ({
-          ...region,
-          text: resultMap.get(i)?.text ?? '',
-          readingOrder: i + 1,
-        }))
+        const MIN_CONFIDENCE = 0.3
+        const recognitionResults: TextBlock[] = textRegions
+          .map((region, i) => ({
+            ...region,
+            text: resultMap.get(i)?.text ?? '',
+            confidence: resultMap.get(i)?.confidence ?? 0,
+            readingOrder: i + 1,
+          }))
+          .filter(b => b.confidence >= MIN_CONFIDENCE)
 
         setJobState((prev) => ({
           ...prev,
