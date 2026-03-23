@@ -20,6 +20,7 @@ import { ImagePreprocessPanel } from './components/viewer/ImagePreprocessPanel'
 import { HistoryPanel } from './components/results/HistoryPanel'
 import { SettingsModal } from './components/settings/SettingsModal'
 import { imageDataToDataUrl } from './utils/imageLoader'
+import { downloadText } from './utils/textExport'
 import './App.css'
 
 function cropRegion(srcDataUrl: string, bbox: BoundingBox) {
@@ -586,6 +587,14 @@ export default function App() {
               {/* ページナビ + 新規処理ボタン */}
               <div className="result-toolbar">
                 {renderPageNav(selectedResultIndex, setSelectedResultIndex, processedImages.length, sessionResults.length - 1)}
+                {!isProcessing && sessionResults.length > 1 && (
+                  <button className="btn btn-secondary" onClick={() => {
+                    const allText = sessionResults.map((r) => `=== ${r.fileName} ===\n${r.fullText}`).join('\n\n')
+                    downloadText(allText, 'all_pages')
+                  }}>
+                    {lang === 'ja' ? '全ページDL' : 'Download All'}
+                  </button>
+                )}
                 {!isProcessing && (
                   <button className="btn btn-secondary btn-new-file" onClick={handleClear}>
                     {lang === 'ja' ? '新しいファイルを処理' : 'Process New Files'}
