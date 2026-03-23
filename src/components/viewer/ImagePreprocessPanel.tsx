@@ -183,14 +183,18 @@ export function ImagePreprocessPanel({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const strings = t[lang]
 
-  // Debounced preview update
-  const updatePreview = useCallback((newOptions: PreprocessOptions) => {
+  // Use ref to always access latest options without stale closures
+  const optionsRef = useRef(options)
+  optionsRef.current = options
+
+  // Debounced preview update — does NOT depend on options to avoid stale closure issues
+  const updatePreview = useCallback(() => {
     setIsProcessing(true)
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
     debounceTimerRef.current = setTimeout(() => {
-      applyPreprocess(imageDataUrl, newOptions)
+      applyPreprocess(imageDataUrl, optionsRef.current)
         .then((result) => {
           onProcessed(result)
           setIsProcessing(false)
@@ -204,20 +208,18 @@ export function ImagePreprocessPanel({
 
   const handleSliderChange = useCallback(
     (key: keyof PreprocessOptions, value: number) => {
-      const newOptions = { ...options, [key]: value }
-      setOptions(newOptions)
-      updatePreview(newOptions)
+      setOptions(prev => ({ ...prev, [key]: value }))
+      updatePreview()
     },
-    [options, updatePreview]
+    [updatePreview]
   )
 
   const handleToggleChange = useCallback(
     (key: keyof PreprocessOptions) => {
-      const newOptions = { ...options, [key]: !options[key] }
-      setOptions(newOptions)
-      updatePreview(newOptions)
+      setOptions(prev => ({ ...prev, [key]: !prev[key] }))
+      updatePreview()
     },
-    [options, updatePreview]
+    [updatePreview]
   )
 
   const handleApply = useCallback(async () => {
@@ -537,23 +539,28 @@ function applySharpness(imageData: ImageData, amount: number): void {
   const data = imageData.data
   const width = imageData.width
   const height = imageData.height
-  const kernel = [0, -1, 0, -1, 4 + amount * 0.1, -1, 0, -1, 0]
-  const divisor = 4 + amount * 0.1
+  // Unsharp mask approach: blend original with sharpened
+  // Standard sharpen kernel: [0, -1, 0, -1, 5, -1, 0, -1, 0] (sum=1)
+  // amount 0-100 controls blend ratio (0 = original, 100 = full sharpen)
+  const strength = amount / 100
 
   const tempData = new Uint8ClampedArray(data)
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       for (let c = 0; c < 3; c++) {
-        let sum = 0
-        for (let ky = -1; ky <= 1; ky++) {
-          for (let kx = -1; kx <= 1; kx++) {
-            const idx = ((y + ky) * width + (x + kx)) * 4 + c
-            sum += tempData[idx] * kernel[(ky + 1) * 3 + (kx + 1)]
-          }
-        }
         const idx = (y * width + x) * 4 + c
-        data[idx] = Math.max(0, Math.min(255, sum / divisor))
+        const original = tempData[idx]
+        // Apply standard sharpen kernel (sum = 1, preserves brightness)
+        let sharpened =
+          -tempData[((y - 1) * width + x) * 4 + c]
+          - tempData[(y * width + (x - 1)) * 4 + c]
+          + 5 * tempData[idx]
+          - tempData[(y * width + (x + 1)) * 4 + c]
+          - tempData[((y + 1) * width + x) * 4 + c]
+        sharpened = Math.max(0, Math.min(255, sharpened))
+        // Blend original and sharpened by strength
+        data[idx] = Math.round(original * (1 - strength) + sharpened * strength)
       }
     }
   }
