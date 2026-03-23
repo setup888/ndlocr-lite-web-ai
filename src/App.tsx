@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { OCRResult, TextBlock, BoundingBox, PageBlock } from './types/ocr'
 import type { DBRunEntry } from './types/db'
 import { useI18n } from './hooks/useI18n'
@@ -67,6 +67,45 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isReadyToProcess, setIsReadyToProcess] = useState(false)
   const [pendingImageIndex, setPendingImageIndex] = useState(0)
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+  const lastClickedIndexRef = useRef<number>(0)
+
+  // サイドバーのクリックハンドラ（Cmd/Ctrl+クリック、Shift+クリック対応）
+  const handleSidebarClick = useCallback((index: number, e: React.MouseEvent) => {
+    const isMetaKey = e.metaKey || e.ctrlKey
+
+    if (isMetaKey) {
+      // Cmd/Ctrl+クリック: トグル選択
+      setSelectedIndices(prev => {
+        const next = new Set(prev)
+        if (next.has(index)) {
+          next.delete(index)
+        } else {
+          next.add(index)
+        }
+        return next
+      })
+      lastClickedIndexRef.current = index
+    } else if (e.shiftKey) {
+      // Shift+クリック: 範囲選択
+      const start = Math.min(lastClickedIndexRef.current, index)
+      const end = Math.max(lastClickedIndexRef.current, index)
+      setSelectedIndices(prev => {
+        const next = new Set(prev)
+        for (let i = start; i <= end; i++) {
+          next.add(i)
+        }
+        return next
+      })
+    } else {
+      // 通常クリック: 単一選択（表示切替のみ、複数選択はクリア）
+      setSelectedIndices(new Set())
+      lastClickedIndexRef.current = index
+    }
+
+    setPendingImageIndex(index)
+    setSelectedRegion(null)
+  }, [])
 
   // 領域選択状態
   const [selectedRegion, setSelectedRegion] = useState<BoundingBox | null>(null)
@@ -93,7 +132,7 @@ export default function App() {
   )
 
   // processedImages が差し替わったらインデックスをリセット
-  useEffect(() => { setPendingImageIndex(0) }, [processedImages])
+  useEffect(() => { setPendingImageIndex(0); setSelectedIndices(new Set()) }, [processedImages])
 
   const currentResult = sessionResults[selectedResultIndex] ?? null
 
@@ -133,6 +172,21 @@ export default function App() {
     document.addEventListener('paste', handleGlobalPaste)
     return () => document.removeEventListener('paste', handleGlobalPaste)
   }, [sessionResults.length, isLoadingFiles, isProcessing, handleFilesSelected])
+
+  // Cmd/Ctrl+A: Pending画面でサイドバー全選択（テキスト入力欄以外）
+  useEffect(() => {
+    if (processedImages.length <= 1) return
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        const tag = (e.target as HTMLElement)?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+        e.preventDefault()
+        setSelectedIndices(new Set(processedImages.map((_, i) => i)))
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [processedImages])
 
   const handleSampleLoad = useCallback(async () => {
     const res = await fetch('/kumonoito.png')
@@ -202,9 +256,14 @@ export default function App() {
         return
       }
 
-      // 全体OCR
+      // 全体OCR（選択がある場合は選択分のみ、なければ全件）
+      const indicesToProcess = selectedIndices.size > 0
+        ? [...selectedIndices].sort((a, b) => a - b)
+        : processedImages.map((_, i) => i)
+
       setSessionResults([])
       setSelectedResultIndex(0)
+      setSelectedIndices(new Set())
       resetState()
 
       const runId = crypto.randomUUID()
@@ -212,10 +271,11 @@ export default function App() {
       const successItems: Array<{ result: OCRResult; thumbnailDataUrl: string }> = []
       const sessionResultsAccum: OCRResult[] = []
 
-      for (let i = 0; i < processedImages.length; i++) {
+      for (let idx = 0; idx < indicesToProcess.length; idx++) {
+        const i = indicesToProcess[idx]
         const image = processedImages[i]
         try {
-          const result = await processImage(image, i, processedImages.length)
+          const result = await processImage(image, idx, indicesToProcess.length)
           successItems.push({ result, thumbnailDataUrl: image.thumbnailDataUrl })
           sessionResultsAccum.push(result)
           setSessionResults([...sessionResultsAccum])
@@ -391,8 +451,8 @@ export default function App() {
                 {processedImages.map((img, i) => (
                   <button
                     key={i}
-                    className={`result-sidebar-item ${i === pendingImageIndex ? 'active' : ''}`}
-                    onClick={() => { setPendingImageIndex(i); setSelectedRegion(null) }}
+                    className={`result-sidebar-item ${i === pendingImageIndex ? 'active' : ''} ${selectedIndices.has(i) ? 'selected' : ''}`}
+                    onClick={(e) => handleSidebarClick(i, e)}
                     title={img.pageIndex ? `${img.fileName} (p.${img.pageIndex})` : img.fileName}
                   >
                     <img src={img.thumbnailDataUrl} alt={img.fileName} />
@@ -401,6 +461,11 @@ export default function App() {
                     </span>
                   </button>
                 ))}
+                {selectedIndices.size > 0 && (
+                  <div className="result-sidebar-selection-info">
+                    {selectedIndices.size}/{processedImages.length}
+                  </div>
+                )}
               </div>
             )}
 
@@ -414,7 +479,9 @@ export default function App() {
                   <button className="btn btn-primary" onClick={() => setIsReadyToProcess(true)}>
                     {selectedRegion
                       ? (lang === 'ja' ? '選択領域のOCRを開始' : 'OCR Selected Region')
-                      : (lang === 'ja' ? 'OCRを開始' : 'Start OCR')}
+                      : selectedIndices.size > 0
+                        ? (lang === 'ja' ? `選択した${selectedIndices.size}件のOCRを開始` : `OCR ${selectedIndices.size} Selected`)
+                        : (lang === 'ja' ? 'OCRを開始' : 'Start OCR')}
                   </button>
                 </div>
                 <ImagePreprocessPanel

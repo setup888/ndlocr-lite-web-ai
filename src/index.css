@@ -589,6 +589,19 @@ button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 
   text-align: center;
 }
 .result-sidebar-item.active .result-sidebar-label { color: var(--color-primary); font-weight: 500; }
+.result-sidebar-item.selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  background: var(--color-primary-light);
+}
+.result-sidebar-item.selected .result-sidebar-label { color: var(--color-primary); }
+.result-sidebar-selection-info {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+  padding: 0.25rem;
+  border-top: 1px solid var(--color-border-light);
+}
 .result-sidebar-item.sidebar-pending { opacity: 0.45; cursor: default; }
 .result-sidebar-item.sidebar-pending:hover { background: transparent; }
 
