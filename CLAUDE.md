@@ -9,6 +9,7 @@ NDLOCR-Lite Web AI は、国立国会図書館の NDLOCR-Lite をベースにし
 - AI（Claude, GPT, Gemini等）によるOCR結果の校正機能を付加
 - 画像前処理（明るさ・コントラスト・シャープネス・二値化・ノイズ除去・傾き補正・ページ分割）
 - ダークモード（OS設定追従）、多言語UI（日英中韓）、縦書き表示モード
+- OCR結果のTEI P5 XML / hOCRエクスポート
 
 詳細な開発計画は `docs/NDLOCR-Lite-Web-AI-開発計画書.md` を参照。
 
@@ -72,7 +73,9 @@ ndlocr-lite-web-ai/
 │   ├── i18n/                      # 多言語リソース（ja, en, zh-CN, zh-TW, ko）
 │   ├── utils/
 │   │   ├── crypto.ts              # APIキー暗号化（Web Crypto API）
-│   │   └── imagePreprocess.ts     # 画像前処理ユーティリティ
+│   │   ├── imagePreprocess.ts     # 画像前処理ユーティリティ
+│   │   ├── exportTEI.ts           # TEI P5 XMLエクスポート
+│   │   └── exportHOCR.ts          # hOCRエクスポート
 │   ├── types/ai.ts                # AI関連の型定義
 │   └── ...                   # OCR処理、hooks、utils等
 ├── docs/
